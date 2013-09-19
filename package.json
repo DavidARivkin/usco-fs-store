@@ -1,10 +1,10 @@
 {
-  "name": "usco-nodejs-store",
+  "name": "usco-localstore",
   "version": "0.0.1",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "http://github.com/usco/usco-nodejsstore.git"
+    "url": "http://github.com/usco/usco-localstore.git"
   },
   "directories": {
     "lib": "./lib"

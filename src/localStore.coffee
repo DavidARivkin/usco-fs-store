@@ -7,7 +7,9 @@ mime = require "mime"
 StoreBase = require 'usco-kernel/src/stores/storeBase'
 utils = require 'usco-kernel/src/utils'
 merge = utils.merge
-  
+
+logger = require "usco-kernel/logger"
+logger.level = "debug"
   
 class LocalStore extends StoreBase
   constructor:(options)->
@@ -32,21 +34,19 @@ class LocalStore extends StoreBase
   * @return {Object} a promise, that gets resolved with the content of the uri
   ###
   list:( uri )=>
-    deferred = Q.defer()
-    
-    if not fs.existsSync( uri )
-      deferred.reject new Error("#{uri} does not exist")
-    stats = fs.statSync( uri )
-    if not stats.isDirectory()
-      deferred.resolve( [] )
-      
-    try  
-      contents = fs.readdirSync( uri )
-      deferred.resolve( contents )
-    catch error
-      deferred.reject( error )
-    
-    return deferred.promise
+    promise = Q.fcall ->
+      if not fs.existsSync( uri )
+        throw new Error("#{uri} does not exist")
+      stats = fs.statSync( uri )
+      if not stats.isDirectory()
+        return []
+        
+      try  
+        contents = fs.readdirSync( uri )
+        return contents
+      catch error
+        throw( error )
+    return promise
   
   ###*
   * read the file at the given uri, return its content
@@ -56,21 +56,20 @@ class LocalStore extends StoreBase
   ###
   read:( uri , encoding )=>
     encoding = encoding or 'utf8'
-    deferred = Q.defer()
+    promise = Q.fcall ->    
+      if not fs.existsSync( uri )
+        throw new Error("#{uri} does not exist")
+      stats = fs.statSync( uri )
+      if stats.isDirectory()
+        throw new Error("#{uri} is a directory")#TODO: not sure
+      
+      try
+        contents = fs.readFileSync( uri, encoding )
+        return contents
+      catch error
+        throw( error )
     
-    if not fs.existsSync( uri )
-      deferred.reject new Error("#{uri} does not exist")
-    stats = fs.statSync( uri )
-    if stats.isDirectory()
-      deferred.reject new Error("#{uri} is a directory")#TODO: not sure
-    
-    try
-      contents = fs.readFileSync( uri, encoding )
-      deferred.resolve( contents )
-    catch error
-      deferred.reject( error )
-    
-    return deferred.promise
+    return promise
   
   ###*
   * write the file at the given uri, with the given data, using given mimetype
@@ -82,22 +81,22 @@ class LocalStore extends StoreBase
   write:( uri, data, type, overwrite )=>
     type = type or 'utf8' #mime.charsets.lookup()
     overwrite = overwrite or true
-    deferred = Q.defer()
+    promise = Q.fcall ->       
+      if fs.existsSync( uri )
+        if not overwrite
+          throw new Error("#{newUri} already exist")
+      try    
+        dirName = path.dirname(uri)
+        if not fs.existsSync( dirName )
+          fs.mkdirSync( dirName )
+        fs.writeFileSync( uri, data )
+        return true
+      catch error
+        if error.errno is 34 and error.code is 'ENOENT' and error.syscall is 'mkdir'
+          throw new Error("Failed to create directory: #{error.path}")
+        throw( error )
     
-    if fs.existsSync( uri )
-      if not overwrite
-        deferred.reject new Error("#{newUri} already exist")
-    try    
-      dirName = path.dirname(uri)
-      if not fs.existsSync( dirName )
-        fs.mkdirSync( dirName )
-        
-      fs.writeFileSync( uri, data )
-      deferred.resolve( true )
-    catch error
-      deferred.reject(error)
-    
-    return deferred.promise
+    return promise
   
   ###*
   * move/rename the item at first uri to the second uri
@@ -108,26 +107,82 @@ class LocalStore extends StoreBase
   ###
   move:( uri, newUri , overwrite)=>
     overwrite = overwrite or false
-    deferred = Q.defer()
+    promise = Q.fcall ->       
+      if not fs.existsSync( uri )
+        throw new Error("#{uri} does not exist")
+      if fs.existsSync( newUri )
+        if not overwrite
+          throw new Error("#{newUri} already exist")
+      try    
+        dirName = path.dirname(newUri)
+        if not fs.existsSync( dirName )
+          fs.mkdirSync( dirName )
+        fs.renameSync(uri, newUri)
+      catch error
+        throw(error)
+        
+      return true
     
-    if not fs.existsSync( uri )
-      deferred.reject new Error("#{uri} does not exist")
-    if fs.existsSync( newUri )
-      if not overwrite
-        deferred.reject new Error("#{newUri} already exist")
-    try    
-      dirName = path.dirname(newUri)
-      if not fs.existsSync( dirName )
-        fs.mkdirSync( dirName )
-      fs.renameSync(uri, newUri)
-    catch error
-      deferred.reject(error)
+    return promise
+  
+  
+  ###*
+  * delete the item at the given uri
+  * @param {String} uri absolute uri of the file or folder to delete
+  * @return {Object} a promise, that gets resolved with "true" if deleting the file/folder was a success, the error in case of failure
+  ###
+  delete:( uri )=>
+    promise = Q.fcall ->     
       
-    deferred.resolve( true )
+      if not fs.existsSync( uri )
+        throw new Error("#{uri} does not exist")
+      if not fs.statSync( uri ).isDirectory()
+        fs.unlinkSync( uri )
+      else 
+        _deleteFolderRecursive = (uri)->
+          if fs.existsSync( uri )
+            fs.readdirSync( uri ).forEach (file,index)->
+              curPath = uri + path.sep + file
+              if(fs.statSync(curPath).isDirectory())
+                _deleteFolderRecursive( curPath )
+              else 
+                fs.unlinkSync( curPath )
+            fs.rmdirSync( uri )
+            
+        _deleteFolderRecursive( uri )
+      
+      return true 
     
-    return deferred.promise
+    return promise
+  
   
   ###-------------------Helpers----------------###
+  
+  ###*
+  * Resolves uri to an absolute path.
+  * @param {String} uri  a path
+  * @return {Object} an absolute path 
+  ###
+  resolvePath:( uri, from )=>
+    segments = uri.split( "/" )
+    if segments[0] != '.' and segments[0] != '..'
+      #logger.debug("fullPath (from absolute)", fileName)
+      return uri
+    
+    #path is relative
+    rootUri = from or @rootUri
+    fileName = path.normalize( uri )
+    
+    #hack to force dirname to work on paths ending with slash
+    rootUri = if rootUri[rootUri.length-1] == "/" then rootUri +="a" else rootUri
+    rootUri = path.normalize(rootUri)
+    rootUri = path.dirname(rootUri)
+    fullPath = path.join( rootUri, uri )
+      
+    logger.debug("fullPath (from relative)", fullPath)
+    
+    return fullPath
+    
   
   ###*
   * checks if specified uri is the uri of a project: the folder needs to exist, and to contain a file with the same name as the folder + one of the "code extensions"
