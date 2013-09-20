@@ -10,7 +10,11 @@ merge = utils.merge
 
 logger = require "usco-kernel/logger"
 logger.level = "debug"
-  
+
+
+###*
+  * Class for storage on local hdd (won't work in browser)
+###
 class LocalStore extends StoreBase
   constructor:(options)->
     options = options or {}
@@ -125,7 +129,6 @@ class LocalStore extends StoreBase
     
     return promise
   
-  
   ###*
   * delete the item at the given uri
   * @param {String} uri absolute uri of the file or folder to delete
@@ -183,9 +186,9 @@ class LocalStore extends StoreBase
     
     return fullPath
     
-  
   ###*
-  * checks if specified uri is the uri of a project: the folder needs to exist, and to contain a file with the same name as the folder + one of the "code extensions"
+  * checks if specified uri is the uri of a project: the folder needs to exist, 
+  * and to contain a file with the same name as the folder + one of the "code extensions"
   * to qualitfy
   * @param {String} uri absolute uri of the path to check
   * @return {Object} "true" if given uri is a project, "false" otherwise
@@ -201,8 +204,24 @@ class LocalStore extends StoreBase
           if fs.existsSync( mainFile )
             return true
     return false
-    
   
+  ###*
+  * checks if specified uri is the uri of a project's MAIN file 
+  * @param {String} uri absolute uri of the path to check
+  * @return {Object} "true" if given uri is a project's main file, "false" otherwise
+  ###
+  isFileProjectMainFile:( uri )=>
+    if fs.existsSync( uri )
+      stats = fs.statSync( uri )
+      if not stats.isDirectory()
+        parentDir = path.dirname( uri )
+        baseName = path.basename( uri )
+        
+        stats = fs.statSync( parentDir )
+        if parentDir is baseName and stats.isDirectory()
+          return true
+    return false
+    
   #OLD #TODO: should project "class" instanciation take place here or else where ?????
   ### 
   saveProject:( project, path )=> 
