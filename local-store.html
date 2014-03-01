@@ -1,0 +1,22 @@
+<link rel="import" href="../polymer/polymer.html"> 
+<script src="lib/local-store.js"> </script>
+
+
+<polymer-element name="local-store" extends="usco-store-base" attributes="">
+  <script>
+    Polymer('local-store', {
+      //lifecycle callbacks
+      created:function()
+      {
+        this.super();
+        LocalStore = require( "local-store" );
+        this.store = new LocalStore();
+        this.store.timeout = this.timeout;
+      },
+      enteredView:function()
+      {
+        this.super();
+      },
+    });
+  </script>
+</polymer-element>
