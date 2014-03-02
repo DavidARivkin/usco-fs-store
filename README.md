@@ -4,10 +4,10 @@ General information
 -------------------
 This repository contains both the:
 - node.js version:
-local-store.coffee in the src folder
+fs-store.coffee in the src folder
 - polymer.js/browser version which is a combo of
-lib/local-store.js (browserified version of the above)
-local-store.html
+lib/fs-store.js (browserified version of the above)
+fs-store.html
 
 
 How to generate browser/polymer.js version (with require support):

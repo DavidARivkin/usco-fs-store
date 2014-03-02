@@ -1,16 +1,16 @@
 <link rel="import" href="../polymer/polymer.html"> 
-<script src="lib/local-store.js"> </script>
+<script src="lib/fs-store.js"> </script>
 
 
-<polymer-element name="local-store" extends="usco-store-base" attributes="">
+<polymer-element name="fs-store" extends="usco-store-base" attributes="">
   <script>
-    Polymer('local-store', {
+    Polymer('fs-store', {
       //lifecycle callbacks
       created:function()
       {
         this.super();
-        LocalStore = require( "local-store" );
-        this.store = new LocalStore();
+        FSStore = require( "fs-store" );
+        this.store = new FSStore();
         this.store.timeout = this.timeout;
       },
       enteredView:function()

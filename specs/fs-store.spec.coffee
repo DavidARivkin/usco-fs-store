@@ -1,7 +1,7 @@
 'use strict'
 path = require 'path'
 fs = require 'fs'
-LocalStore = require "../src/localStore"
+FSStore = require "../src/fs-store.coffee"
 
 
 deleteFolderRecursive = (uri)->
@@ -19,7 +19,7 @@ describe "local store", ->
   localStore = null 
   
   beforeEach ->
-    localStore = new LocalStore()
+    localStore = new FSStore()
   
   afterEach ->
     testDir = path.resolve("./specs/data/TestFolder")

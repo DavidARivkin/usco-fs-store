@@ -1,7 +1,7 @@
 {
-  "name": "usco-local-store",
+  "name": "usco-fs-store",
   "version": "0.0.1",
-  "main": "lib/local-store.js",
+  "main": "lib/fs-store.js",
   "private": true,
   "dependencies": {
   },
