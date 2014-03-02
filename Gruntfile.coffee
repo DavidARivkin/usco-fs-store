@@ -5,12 +5,12 @@ module.exports = (grunt) ->
     currentBuild: null
     browserify:
       basic:
-        src: ["./src/local-store.coffee"]
-        dest: "lib/local-store.js"
+        src: ["./src/fs-store.coffee"]
+        dest: "lib/fs-store.js"
         options:
           transform: ["coffeeify"]
-          external: ["composite-detect","q","minilog"]
-          alias: ["./src/local-store.coffee:local-store"]
+          external: ["composite-detect","q","minilog","path"]
+          alias: ["./src/fs-store.coffee:fs-store"]
           
     bump:
       options:
