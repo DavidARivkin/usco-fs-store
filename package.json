@@ -10,11 +10,13 @@
     "lib": "./lib"
   },
  "dependencies": {
+    "composite-detect": "0.0.3",
     "q": "~0.9.6",
-    "coffee-script": "~1.6.3",
+    "minilog": "~2.0.2",
     "mime": "~1.2.11"
   },
   "devDependencies": {
+    "coffee-script": "~1.6.3",
     "jasmine-node": "1.10.2",
     "grunt": "^0.4.2",
     "grunt-browserify": "^1.3.1",

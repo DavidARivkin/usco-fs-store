@@ -1,4 +1,5 @@
 'use strict'
+detectEnv = require "composite-detect"
 Q = require "q"
 fs = require "fs"
 path = require "path"
@@ -10,24 +11,24 @@ mime = require "mime"
 if detectEnv.isModule
   Minilog=require("minilog")
   Minilog.pipe(Minilog.suggest).pipe(Minilog.backends.console.formatClean).pipe(Minilog.backends.console)
-  logger = Minilog('local-store')
+  logger = Minilog('fs-store')
 
 if detectEnv.isNode
   Minilog.pipe(Minilog.suggest).pipe(Minilog.backends.console.formatColor).pipe(Minilog.backends.console)
 
 if detectEnv.isBrowser
   Minilog.pipe(Minilog.suggest).pipe(Minilog.backends.console.formatClean).pipe(Minilog.backends.console)
-  logger = Minilog('local-store')
+  logger = Minilog('fs-store')
   
   
-class LocalStore #extends StoreBase
+class FSStore #extends StoreBase
   constructor:(options)->
     options = options or {}
     defaults =
       enabled: (if process? then true else false)
-      name:"local"
-      type:"local",
-      description: "NodeJS local file system store"
+      name:"fs"
+      type:"fs",
+      description: "NodeJS fs file system store"
       rootUri:if process? then process.env.HOME or process.env.HOMEPATH or process.env.USERPROFILE else null
       isDataDumpAllowed: false
       showPaths:true
@@ -43,19 +44,23 @@ class LocalStore #extends StoreBase
   * @return {Object} a promise, that gets resolved with the content of the uri
   ###
   list:( uri )=>
+    deferred = Q.defer()
+    
+    #promise based, keeping for reference ...when promises have cancelation...
     promise = Q.fcall ->
       if not fs.existsSync( uri )
         throw new Error("#{uri} does not exist")
       stats = fs.statSync( uri )
       if not stats.isDirectory()
         return []
-        
       try  
         contents = fs.readdirSync( uri )
-        return contents
+        return contents.sort()
       catch error
         throw( error )
-    return promise
+        
+    deferred.resolve( promise )
+    return deferred
   
   ###*
   * read the file at the given uri, return its content
@@ -65,6 +70,7 @@ class LocalStore #extends StoreBase
   ###
   read:( uri , encoding )=>
     encoding = encoding or 'utf8'
+    deferred = Q.defer()
     promise = Q.fcall ->    
       if not fs.existsSync( uri )
         throw new Error("#{uri} does not exist")
@@ -78,7 +84,8 @@ class LocalStore #extends StoreBase
       catch error
         throw( error )
     
-    return promise
+    deferred.resolve( promise )
+    return deferred
   
   ###*
   * write the file at the given uri, with the given data, using given mimetype
@@ -90,6 +97,8 @@ class LocalStore #extends StoreBase
   write:( uri, data, type, overwrite )=>
     type = type or 'utf8' #mime.charsets.lookup()
     overwrite = overwrite or true
+    deferred = Q.defer()
+    
     promise = Q.fcall ->       
       if fs.existsSync( uri )
         if not overwrite
@@ -105,7 +114,8 @@ class LocalStore #extends StoreBase
           throw new Error("Failed to create directory: #{error.path}")
         throw( error )
     
-    return promise
+    deferred.resolve( promise )
+    return deferred
   
   ###*
   * move/rename the item at first uri to the second uri
@@ -116,6 +126,7 @@ class LocalStore #extends StoreBase
   ###
   move:( uri, newUri , overwrite)=>
     overwrite = overwrite or false
+    deferred = Q.defer()
     promise = Q.fcall ->       
       if not fs.existsSync( uri )
         throw new Error("#{uri} does not exist")
@@ -129,18 +140,20 @@ class LocalStore #extends StoreBase
         fs.renameSync(uri, newUri)
       catch error
         throw(error)
-        
       return true
     
-    return promise
+    deferred.resolve( promise )
+    return deferred
   
   
   ###*
   * delete the item at the given uri
   * @param {String} uri absolute uri of the file or folder to delete
-  * @return {Object} a promise, that gets resolved with "true" if deleting the file/folder was a success, the error in case of failure
+  * @return {Object} a deferred, that gets resolved with "true" if deleting the file/folder was a success, the error in case of failure
   ###
   delete:( uri )=>
+    deferred = Q.defer()
+    
     promise = Q.fcall ->     
       
       if not fs.existsSync( uri )
@@ -159,10 +172,10 @@ class LocalStore #extends StoreBase
             fs.rmdirSync( uri )
             
         _deleteFolderRecursive( uri )
-      
       return true 
-    
-    return promise
+      
+    deferred.resolve( promise )
+    return deferred
   
   
   ###-------------------Helpers----------------###
@@ -199,4 +212,4 @@ class LocalStore #extends StoreBase
   getStats:(uri)=>
 
  
-module.exports = LocalStore
+module.exports = FSStore
