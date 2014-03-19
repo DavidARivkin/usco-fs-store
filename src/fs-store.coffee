@@ -3,7 +3,7 @@ detectEnv = require "composite-detect"
 Q = require "q"
 fs = require "fs"
 path = require "path"
-mime = require "mime"
+#mime = require "mime"
 
 #StoreBase = require 'usco-kernel/src/stores/storeBase'
 #utils = require 'usco-kernel/src/utils'

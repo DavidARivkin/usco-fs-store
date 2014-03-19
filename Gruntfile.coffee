@@ -10,7 +10,9 @@ module.exports = (grunt) ->
         options:
           transform: ["coffeeify"]
           external: ["composite-detect","q","minilog","path"]
-          alias: ["./src/fs-store.coffee:fs-store"]
+          alias: ["./src/fs-store.coffee:fs-store"],
+          insertGlobals: false,
+          detectGlobals: false
           
     bump:
       options:

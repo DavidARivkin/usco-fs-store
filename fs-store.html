@@ -1,7 +1,6 @@
 <link rel="import" href="../polymer/polymer.html"> 
 <script src="lib/fs-store.js"> </script>
 
-
 <polymer-element name="fs-store" extends="usco-store-base" attributes="">
   <script>
     Polymer('fs-store', {
@@ -12,11 +11,7 @@
         FSStore = require( "fs-store" );
         this.store = new FSStore();
         this.store.timeout = this.timeout;
-      },
-      enteredView:function()
-      {
-        this.super();
-      },
+      }
     });
   </script>
 </polymer-element>
